@@ -17,6 +17,7 @@ wubi: wubi-pre-build
 	mv build/application.exe build/wubi.exe
 
 wubizip: wubi-pre-build
+	rm -rf build/wubi
 	PYTHONPATH=src tools/pywine src/pypack/pypack.py --verbose --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
 	cp wine/drive_c/Python27/python.exe build/wubi #TBD
 	cd build; zip -r wubi.zip wubi
