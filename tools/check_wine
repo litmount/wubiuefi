@@ -33,6 +33,15 @@ program_dir="$WINEPREFIX/drive_c/Program"
 python_dir="$WINEPREFIX/drive_c/Python27"
 python_site="$python_dir/Lib/site-packages"
 toolsdir="$root/tools"
+apt_updated=
+
+apt_install(){
+	if [ -z "$apt_updated" ]; then
+		sudo apt-get update
+		apt_updated=1
+	fi
+	sudo apt-get install -y "$@"
+}
 
 download(){
 	wget  -P /tmp -O "$2" "$1"
@@ -47,13 +56,13 @@ download(){
 install_7z(){
 	echo "Installing 7z..."
 	download "$p7zip_url" "/tmp/p7zip.exe" "$p7zip_md5"
-	wine "/tmp/p7zip.exe"
+	wine "/tmp/p7zip.exe" /S
 }
 
 install_wine(){
 	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ]; then
 		echo "Installing wine..."
-		sudo apt-get install wine #TBD do not assume apt
+		apt_install wine #TBD do not assume apt
 	fi
 	#echo "Creating wine folder..."
 	#wineprefixcreate --prefix "$WINEPREFIX"
@@ -62,7 +71,7 @@ install_wine(){
 install_mingw32(){
 	if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
 		echo "Installing mingw32..."
-		sudo apt-get install mingw32 #TBD do not assume apt
+		apt_install mingw32 #TBD do not assume apt
 	fi
 	if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
 		echo "Installing mingw32 via dpkg..."
@@ -77,27 +86,27 @@ install_mingw32(){
 install_unzip(){
 	if [ ! -x /usr/bin/unzip -a ! -x /usr/local/bin/unzip ]; then
 		echo "Installing unzip..."
-		sudo apt-get install unzip #TBD do not assume apt
+		apt_install unzip #TBD do not assume apt
 	fi
 }
 
 install_python(){
 	echo "Installing python..."
 	download "$python_url" "/tmp/python.msi" "$python_md5"
-    wine msiexec /i /tmp/python.msi /qb /ADDLOCAL=DefaultFeature /ALLUSERS=1
+	wine msiexec /i /tmp/python.msi /qn /ADDLOCAL=DefaultFeature /ALLUSERS=1
 	# wine "/tmp/python.exe"
 }
 
 install_pywin(){
 	echo "Installing pywin..."
 	download "$pywin_url" "/tmp/pywin.exe" "$pywin_md5"
-    wine "/tmp/pywin"
+	wine "/tmp/pywin.exe" /silent
 }
 
 install_ctypes(){
 	echo "Installing ctypes..."
 	download "$ctypes_url" "/tmp/ctypes.exe" "$ctypes_md5"
-    wine "/tmp/ctypes.exe"
+	wine "/tmp/ctypes.exe" /silent
 }
 
 install_mock(){
@@ -109,13 +118,13 @@ install_mock(){
 install_subprocess(){
 	echo "Installing subprocess..."
 	download "$subprocess_url" "/tmp/subprocess.exe" "$subprocess_md5"
-    wine "/tmp/subprocess.exe"
+	wine "/tmp/subprocess.exe" /silent
 }
 
 install_pycrypto(){
 	echo "Installing pycrypto..."
 	download "$pycrypto_url" "/tmp/pycrypto.exe" "$pycrypto_md5"
-    wine "/tmp/pycrypto.exe"
+	wine "/tmp/pycrypto.exe" /silent
 }
 
 if [ ! -e "$root/wine" ]; then

@@ -1,0 +1,73 @@
+name: Build and release
+
+on:
+  pull_request:
+  push:
+    tags-ignore:
+      - '*'
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            gettext \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            grub-efi-ia32-bin \
+            shim-signed \
+            sbsigntool \
+            unzip \
+            wine \
+            xvfb
+
+      - name: Build release artifacts
+        run: xvfb-run -a make wubi wubizip
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wubi-build
+          if-no-files-found: error
+          path: |
+            build/wubi.exe
+            build/wubi.zip
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wubi-build
+          path: dist
+
+      - name: Upload assets to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/wubi.exe
+            dist/wubi.zip

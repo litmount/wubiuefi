@@ -12,7 +12,7 @@ For more information see: https://github.com/hakuna-m/wubiuefi/wiki
 
 | Make Command         | Description                                                                                                                                                                                                               |
 |----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `make`               | Builds wubi.exe, note that the first time you run it, you will have to install python inside of Wine, this is performed automatically, just confirm all the default choices in the installation screens that will appear. |
+| `make`               | Builds wubi.exe and bootstraps the Wine-based build environment automatically on the first run.                                                                                                                           |
 | `make runpy`         | Runs wubi under wine directly from source                                                                                                                                                                                 |
 | `make runbin`        | Builds wubi and runs the packaged binary under wine                                                                                                                                                                       |
 | `make wubizip`       | Creates a special zip file conatining python.exe and non byte compiled python files that is convenient for debugging purposes. Inside of Windows, unzip the archive, then run `python.exe main.py --verbose`              |
@@ -23,6 +23,13 @@ For more information see: https://github.com/hakuna-m/wubiuefi/wiki
 | `make winboot2`      | Creates the boot loader files (new version)                                                                                                                                                                               |
 | `make clean`         | Removes built files                                                                                                                                                                                                       |
 | `make distclean`     | Removes built files and environment                                                                                                                                                                                       |
+
+
+## GitHub Actions
+
+The workflow in `.github/workflows/build-release.yml` builds `build/wubi.exe` and `build/wubi.zip` for pull requests, pushes, and manual runs, then uploads them as workflow artifacts.
+
+To get those files onto the GitHub release page, publish a GitHub Release for the tag you want to ship. The same workflow also runs on `release.published` and uploads `wubi.exe` and `wubi.zip` to that release automatically.
 
 
 ## Code overview

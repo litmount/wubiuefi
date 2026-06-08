@@ -3,22 +3,31 @@
 shim_signed_url="http://archive.ubuntu.com/ubuntu/pool/main/s/shim-signed/shim-signed_1.34.9+13-0ubuntu2_amd64.deb"
 shim_url="http://archive.ubuntu.com/ubuntu/pool/main/s/shim/shim_13-0ubuntu2_amd64.deb"
 shim_blacklist_md5="f7a57b08bc7c1c85417ae4cea582d1d4"
+apt_updated=
+
+apt_install(){
+	if [ -z "$apt_updated" ]; then
+		sudo apt-get update
+		apt_updated=1
+	fi
+	sudo apt-get install -y "$@"
+}
 
 if [ ! -e /usr/lib/grub/i386-pc/moddep.lst ]; then
 	echo "Installing grub-pc-bin"
-	sudo apt-get install grub-pc-bin #TBD do not assume apt
+	apt_install grub-pc-bin #TBD do not assume apt
 fi
 if [ ! -e /usr/lib/grub/x86_64-efi/moddep.lst ]; then
 	echo "Installing grub-efi-amd64-bin"
-	sudo apt-get install grub-efi-amd64-bin #TBD do not assume apt
+	apt_install grub-efi-amd64-bin #TBD do not assume apt
 fi
 if [ ! -e /usr/lib/grub/i386-efi/moddep.lst ]; then
 	echo "Installing grub-efi-ia32-bin"
-	sudo apt-get install grub-efi-ia32-bin #TBD do not assume apt
+	apt_install grub-efi-ia32-bin #TBD do not assume apt
 fi
 if [ ! -e /usr/lib/shim/shim.efi.signed ] && [ ! -e /usr/lib/shim/shimx64.efi.signed ]; then
 	echo "Installing shim-signed..."
-	sudo apt-get install shim-signed #TBD do not assume apt
+	apt_install shim-signed #TBD do not assume apt
 fi
 if [ -e /usr/lib/shim/shimx64.efi.signed ] &&
    [ "$(md5sum /usr/lib/shim/shimx64.efi.signed | cut -d ' ' -f 1)" = "$shim_blacklist_md5" ] && 
@@ -34,11 +43,11 @@ if [ -e /usr/lib/shim/shimx64.efi.signed ] &&
 fi
 if [ ! -e /usr/bin/sbsign ]; then
 	echo "Installing sbsigntool..."
-	sudo apt-get install sbsigntool #TBD do not assume apt
+	apt_install sbsigntool #TBD do not assume apt
 fi
 if [ ! -e /usr/bin/openssl ];then
 	echo "Installing openssl..."
-	sudo apt-get install openssl #TBD do not assume apt
+	apt_install openssl #TBD do not assume apt
 fi
 if [ ! -e .key ];then
 	echo "generating new Secure Boot key..."
