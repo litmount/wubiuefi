@@ -67,7 +67,7 @@ ensure_wineprefix(){
 	if [ ! -e "$WINEPREFIX/system.reg" ]; then
 		echo "Initializing wine prefix..."
 		WINEARCH=win32 display_run wineboot -u
-		wineserver -w >/dev/null 2>&1 || true
+		wineserver -w || true
 	fi
 }
 
@@ -88,9 +88,12 @@ install_7z(){
 }
 
 install_wine(){
+	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ] || \
+	   ! dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -q "install ok installed"; then
+		apt_add_architecture i386
+	fi
 	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ]; then
 		echo "Installing wine..."
-		apt_add_architecture i386
 		apt_install wine wine32:i386 #TBD do not assume apt
 	fi
 	if ! dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -q "install ok installed"; then
