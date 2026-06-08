@@ -22,7 +22,7 @@ import sys
 import os
 import shutil
 from modulegraph.find_modules import find_modules
-from modulegraph.modulegraph import SourceModule, Package, Script, Extension
+from modulegraph.modulegraph import SourceModule, CompiledModule, Package, Script, Extension
 from os.path import basename, dirname
 import py_compile
 from optparse import OptionParser
@@ -134,7 +134,7 @@ class Application(object):
         for module in modules:
             if not module.filename:
                 continue
-            if isinstance(module, SourceModule):
+            if isinstance(module, (SourceModule, CompiledModule)):
                 target = module2path(lib_dir, module.identifier)
                 target +=  '.py'
                 self.compile(module.filename, target)
@@ -160,6 +160,12 @@ class Application(object):
     def compile(self, source, target):
         log.debug("copying %s -> %s", source, target)
         makedirs(dirname(target))
+        if source.endswith('.pyc') or source.endswith('.pyo'):
+            compiled_target = target
+            if target.endswith('.py'):
+                compiled_target += source[-1]
+            shutil.copy(source, compiled_target)
+            return
         shutil.copy(source, target)
         if self.options.bytecompile:
             log.debug("compiling %s", target)
