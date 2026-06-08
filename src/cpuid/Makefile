@@ -1,8 +1,9 @@
 export SHELL = sh
 PROGRAM = pylauncher
 LDFLAGS = -shared -dll
-CC = i586-mingw32msvc-gcc
-STRIP = i586-mingw32msvc-strip
+MINGW_PREFIX ?= i686-w64-mingw32
+CC = $(MINGW_PREFIX)-gcc
+STRIP = $(MINGW_PREFIX)-strip
 
 all: cpuid.dll
 
