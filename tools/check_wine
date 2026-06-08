@@ -92,7 +92,8 @@ install_wine(){
 		echo "Installing wine..."
 		apt_add_architecture i386
 		apt_install wine wine32:i386 #TBD do not assume apt
-	elif dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -qv " installed$"; then
+	fi
+	if ! dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -q "install ok installed"; then
 		echo "Installing wine32..."
 		apt_add_architecture i386
 		apt_install wine32:i386 #TBD do not assume apt
