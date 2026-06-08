@@ -147,7 +147,12 @@ def get_build_platform():
     XXX Currently this is the same as ``distutils.util.get_platform()``, but it
     needs some hacks for Linux and Mac OS X.
     """
-    from distutils.util import get_platform
+    try:
+        from distutils.util import get_platform
+    except ImportError:
+        if sys.platform.startswith('win'):
+            return 'win32'
+        return sys.platform
     plat = get_platform()
     if sys.platform == "darwin" and not plat.startswith('macosx-'):
         try:
@@ -2269,4 +2274,3 @@ run_main = run_script   # backward compatibility
 # calling ``require()``) will get activated as well.
 add_activation_listener(lambda dist: dist.activate())
 working_set.entries=[]; map(working_set.add_entry,sys.path) # match order
-
