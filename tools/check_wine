@@ -183,7 +183,6 @@ install_python(){
 		download_sha256_or_fail "$portable_python_w9xpopen_url" "/tmp/w9xpopen.exe" "$portable_python_w9xpopen_sha256"
 		cp "/tmp/python.exe" "$python_dir/python.exe"
 		cp "/tmp/python27.dll" "$python_dir/python27.dll"
-		cp "/tmp/python27.zip" "$python_dir/python27.zip"
 		cp "/tmp/w9xpopen.exe" "$python_dir/w9xpopen.exe"
 		python3 - "$python_dir/Lib" "/tmp/python27.zip" <<'EOF'
 import sys
@@ -193,6 +192,7 @@ target_dir, archive = sys.argv[1:3]
 zf = zipfile.ZipFile(archive)
 zf.extractall(target_dir)
 EOF
+		rm -f "$python_dir/python27.zip"
 		while IFS='|' read -r name url sha; do
 			download_sha256_or_fail "$url" "/tmp/$name" "$sha"
 			cp "/tmp/$name" "$python_dir/$name"
