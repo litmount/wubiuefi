@@ -1,3 +1,5 @@
 #!/bin/sh
 root="$(cd ${0%/*}/../;pwd)"
-PYTHONHOME=c:/python27 "$root/tools/wine" c:/python27/python.exe $@
+PYTHONHOME=c:/python27 \
+PYTHONPATH="c:/python27/Lib;c:/python27/Lib/site-packages${PYTHONPATH:+;$PYTHONPATH}" \
+"$root/tools/wine" c:/python27/python.exe $@
