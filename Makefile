@@ -12,8 +12,8 @@ all: build check
 build: wubi
 
 wubi: wubi-pre-build
-	PYTHONPATH=src tools/pywine -OO src/pypack/pypack.py --verbose --bytecompile --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
-	PYTHONPATH=src tools/pywine -OO build/pylauncher/pack.py build/wubi
+	PYTHONPATH=src tools/pywine src/pypack/pypack.py --verbose --bytecompile --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
+	PYTHONPATH=src tools/pywine build/pylauncher/pack.py build/wubi
 	mv build/application.exe build/wubi.exe
 
 wubizip: wubi-pre-build
