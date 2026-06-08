@@ -27,6 +27,7 @@ jobs:
 
       - name: Install Linux build dependencies
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             gettext \
@@ -37,6 +38,7 @@ jobs:
             sbsigntool \
             unzip \
             wine \
+            wine32:i386 \
             xvfb
 
       - name: Build release artifacts
