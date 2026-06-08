@@ -1,44 +1,6 @@
 #!/bin/sh
 root="$(cd ${0%/*}/../;pwd)"
-
-run_python() {
+exec env \
 	PYTHONHOME=c:/python27 \
 	PYTHONPATH="c:/python27/Lib;c:/python27/Lib/site-packages${PYTHONPATH:+;$PYTHONPATH}" \
 	"$root/tools/wine" c:/python27/python.exe "$@"
-}
-
-pyopt=
-case "$1" in
-	-O|-OO)
-		pyopt="$1"
-		shift
-		;;
-esac
-
-case "$1" in
-	""|-c|-h|-i|-m|-V|--help|--version)
-		if [ -n "$pyopt" ]; then
-			run_python "$pyopt" "$@"
-			exit $?
-		fi
-		run_python "$@"
-		exit $?
-		;;
-	-*)
-		if [ -n "$pyopt" ]; then
-			run_python "$pyopt" "$@"
-			exit $?
-		fi
-		run_python "$@"
-		exit $?
-		;;
-esac
-
-script="$1"
-shift
-
-if [ -n "$pyopt" ]; then
-	run_python "$pyopt" -c "import sys; path = sys.argv[1]; args = sys.argv[2:]; sys.argv = [path] + args; globals_dict = {'__name__': '__main__', '__file__': path}; execfile(path, globals_dict)" "$script" "$@"
-	exit $?
-fi
-run_python -c "import sys; path = sys.argv[1]; args = sys.argv[2:]; sys.argv = [path] + args; globals_dict = {'__name__': '__main__', '__file__': path}; execfile(path, globals_dict)" "$script" "$@"
