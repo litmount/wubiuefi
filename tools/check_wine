@@ -29,6 +29,7 @@ mingw32_runtime_url="http://archive.ubuntu.com/ubuntu/pool/universe/m/mingw32-ru
 
 root="$(cd ${0%/*}/../;pwd)"
 export WINEPREFIX="$root"/wine
+export WINEDLLOVERRIDES="mscoree,mshtml="
 program_dir="$WINEPREFIX/drive_c/Program"
 python_dir="$WINEPREFIX/drive_c/Python27"
 python_site="$python_dir/Lib/site-packages"
@@ -41,6 +42,33 @@ apt_install(){
 		apt_updated=1
 	fi
 	sudo apt-get install -y "$@"
+}
+
+apt_add_architecture(){
+	if ! dpkg --print-foreign-architectures | grep -qx "$1"; then
+		sudo dpkg --add-architecture "$1"
+		apt_updated=
+	fi
+}
+
+display_run(){
+	if [ -n "$DISPLAY" ] || ! command -v xvfb-run >/dev/null 2>&1; then
+		"$@"
+	else
+		xvfb-run -a "$@"
+	fi
+}
+
+wine_run(){
+	display_run wine "$@"
+}
+
+ensure_wineprefix(){
+	if [ ! -e "$WINEPREFIX/system.reg" ]; then
+		echo "Initializing wine prefix..."
+		WINEARCH=win32 display_run wineboot -u
+		wineserver -w >/dev/null 2>&1 || true
+	fi
 }
 
 download(){
@@ -56,16 +84,24 @@ download(){
 install_7z(){
 	echo "Installing 7z..."
 	download "$p7zip_url" "/tmp/p7zip.exe" "$p7zip_md5"
-	wine "/tmp/p7zip.exe" /S
+	wine_run "/tmp/p7zip.exe" /S
 }
 
 install_wine(){
 	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ]; then
 		echo "Installing wine..."
-		apt_install wine #TBD do not assume apt
+		apt_add_architecture i386
+		apt_install wine wine32:i386 #TBD do not assume apt
+	elif dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -qv " installed$"; then
+		echo "Installing wine32..."
+		apt_add_architecture i386
+		apt_install wine32:i386 #TBD do not assume apt
 	fi
-	#echo "Creating wine folder..."
-	#wineprefixcreate --prefix "$WINEPREFIX"
+	if [ -z "$DISPLAY" ] && ! command -v xvfb-run >/dev/null 2>&1; then
+		echo "Installing xvfb..."
+		apt_install xvfb #TBD do not assume apt
+	fi
+	ensure_wineprefix
 }
 
 install_mingw32(){
@@ -93,20 +129,20 @@ install_unzip(){
 install_python(){
 	echo "Installing python..."
 	download "$python_url" "/tmp/python.msi" "$python_md5"
-	wine msiexec /i /tmp/python.msi /qn /ADDLOCAL=DefaultFeature /ALLUSERS=1
+	wine_run msiexec /i /tmp/python.msi /qn /ADDLOCAL=DefaultFeature /ALLUSERS=1
 	# wine "/tmp/python.exe"
 }
 
 install_pywin(){
 	echo "Installing pywin..."
 	download "$pywin_url" "/tmp/pywin.exe" "$pywin_md5"
-	wine "/tmp/pywin.exe" /silent
+	wine_run "/tmp/pywin.exe" /silent
 }
 
 install_ctypes(){
 	echo "Installing ctypes..."
 	download "$ctypes_url" "/tmp/ctypes.exe" "$ctypes_md5"
-	wine "/tmp/ctypes.exe" /silent
+	wine_run "/tmp/ctypes.exe" /silent
 }
 
 install_mock(){
@@ -118,16 +154,16 @@ install_mock(){
 install_subprocess(){
 	echo "Installing subprocess..."
 	download "$subprocess_url" "/tmp/subprocess.exe" "$subprocess_md5"
-	wine "/tmp/subprocess.exe" /silent
+	wine_run "/tmp/subprocess.exe" /silent
 }
 
 install_pycrypto(){
 	echo "Installing pycrypto..."
 	download "$pycrypto_url" "/tmp/pycrypto.exe" "$pycrypto_md5"
-	wine "/tmp/pycrypto.exe" /silent
+	wine_run "/tmp/pycrypto.exe" /silent
 }
 
-if [ ! -e "$root/wine" ]; then
+if [ ! -e "$WINEPREFIX/system.reg" ]; then
 	install_wine
 fi
 if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
