@@ -138,7 +138,7 @@ unittest:
 	tools/pywine tools/test
 
 check: wubi
-	tests/run
+	tools/pywine -O tests/run.py
 
 runpy:
 	PYTHONPATH=src tools/pywine src/main.py --test
