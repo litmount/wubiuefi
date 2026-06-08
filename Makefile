@@ -12,12 +12,13 @@ all: build check
 build: wubi
 
 wubi: wubi-pre-build
-	PYTHONPATH=src tools/pywine -OO src/pypack/pypack --verbose --bytecompile --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
-	PYTHONPATH=src tools/pywine -OO build/pylauncher/pack.py build/wubi
+	PYTHONPATH=src tools/pywine src/pypack/pypack.py --verbose --bytecompile --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
+	PYTHONPATH=src tools/pywine build/pylauncher/pack.py build/wubi
 	mv build/application.exe build/wubi.exe
 
 wubizip: wubi-pre-build
-	PYTHONPATH=src tools/pywine src/pypack/pypack --verbose --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
+	rm -rf build/wubi
+	PYTHONPATH=src tools/pywine src/pypack/pypack.py --verbose --outputdir=build/wubi src/main.py data build/bin build/version.py build/winboot build/translations
 	cp wine/drive_c/Python27/python.exe build/wubi #TBD
 	cd build; zip -r wubi.zip wubi
 
@@ -83,7 +84,7 @@ winboot2:
 	cat /usr/lib/grub/i386-pc/lnxboot.img build/grubutil/core.img > build/winboot/wubildr
 	mkdir -p build/winboot/EFI
 	grub-mkimage -O x86_64-efi -c build/winboot/wubildr-bootstrap.cfg -m build/winboot/wubildr.tar -o build/winboot/EFI/grubx64.efi \
-		loadenv part_msdos part_gpt fat ntfs ext2 ntfscomp iso9660 loopback search linux linuxefi boot minicmd cat cpuid chain halt help ls reboot \
+		loadenv part_msdos part_gpt fat ntfs ext2 ntfscomp iso9660 loopback search linux boot minicmd cat cpuid chain halt help ls reboot \
 		echo test configfile gzio normal sleep memdisk tar font gfxterm gettext true efi_gop efi_uga video_bochs video_cirrus probe efifwsetup \
 		all_video gfxterm_background png gfxmenu
 	cp /usr/lib/shim/shim.efi.signed build/winboot/EFI/shimx64.efi 2>/dev/null || \
@@ -94,7 +95,7 @@ winboot2:
 		cp /usr/lib/shim/mmx64.efi build/winboot/EFI/mmx64.efi
 	sbsign --key .key/*.key --cert .key/*.crt --output build/winboot/EFI/grubx64.efi build/winboot/EFI/grubx64.efi
 	grub-mkimage -O i386-efi -c build/winboot/wubildr-bootstrap.cfg -m build/winboot/wubildr.tar -o build/winboot/EFI/grubia32.efi \
-		loadenv part_msdos part_gpt fat ntfs ext2 ntfscomp iso9660 loopback search linux linuxefi boot minicmd cat cpuid chain halt help ls reboot \
+		loadenv part_msdos part_gpt fat ntfs ext2 ntfscomp iso9660 loopback search linux boot minicmd cat cpuid chain halt help ls reboot \
 		echo test configfile gzio normal sleep memdisk tar font gfxterm gettext true efi_gop efi_uga video_bochs video_cirrus probe efifwsetup \
 		all_video gfxterm_background png gfxmenu
 	sbsign --key .key/*.key --cert .key/*.crt --output build/winboot/EFI/grubia32.efi build/winboot/EFI/grubia32.efi
@@ -137,7 +138,7 @@ unittest:
 	tools/pywine tools/test
 
 check: wubi
-	tests/run
+	tools/pywine -O tests/run.py
 
 runpy:
 	PYTHONPATH=src tools/pywine src/main.py --test

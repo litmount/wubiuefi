@@ -52,7 +52,15 @@ def get_implies():
         result["_elementtree"] = ["pyexpat"]
 
         import xml.etree
-        files = os.listdir(xml.etree.__path__[0])
+        try:
+            files = os.listdir(xml.etree.__path__[0])
+        except (IOError, OSError):
+            files = [
+                "ElementInclude.py",
+                "ElementPath.py",
+                "ElementTree.py",
+                "cElementTree.py",
+            ]
         for fn in files:
             if fn.endswith('.py') and fn != "__init__.py":
                 result["_elementtree"].append("xml.etree.%s"%(fn[:-3],))

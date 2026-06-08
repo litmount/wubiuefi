@@ -5,8 +5,19 @@ python_url="https://www.python.org/ftp/python/2.7.17/python-2.7.17.msi"
 python_md5="4cc27e99ad41cd3e0f2a50d9b6a34f79"
 p7zip_url="https://downloads.sourceforge.net/project/sevenzip/7-Zip/4.64/7z464.exe"
 p7zip_md5="d2810e3dd4b60ab05fe7c29a50921efa"
+portable_7za_url="https://media.githubusercontent.com/media/jpvanoosten/VolumeTiledForwardShading/47ac3a5aad0a2978d60dfcac0be40b04417a33b1/Tools/7Zip/7za.exe"
+portable_7za_sha256="59df28612ee340037001acf8ec39a624581f37a01c4f231a62b99873d4793482"
 pywin_url="http://downloads.sourceforge.net/pywin32/pywin32-220.win32-py2.7.exe"
 pywin_md5="59be43a3f010602ce623612ecdf34908"
+
+portable_python_exe_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python_mcp.exe"
+portable_python_exe_sha256="702e31ed1537c279459a255460f12f0f2863f973e121cd9194957f4f3e7b0994"
+portable_python_dll_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python27.dll"
+portable_python_dll_sha256="7731e2cdb12d3bbf6c9c64e29f1883c36cb9d443a6fb5770a7d8b0e57d95c2be"
+portable_python_zip_url="https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/python27.zip"
+portable_python_zip_sha256="f90ee86777654266e70f09c4a1fd8c7624faae50bf9b7e9ada45718992afd34b"
+portable_python_w9xpopen_url="https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/w9xpopen.exe"
+portable_python_w9xpopen_sha256="81e882c3771e038306348f1fd332138d95b0f545f393843122f1635264e81003"
 
 #Compiled modules
 pycrypto_url="https://web.archive.org/web/20200502114359/http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe"
@@ -29,10 +40,13 @@ mingw32_runtime_url="http://archive.ubuntu.com/ubuntu/pool/universe/m/mingw32-ru
 
 root="$(cd ${0%/*}/../;pwd)"
 export WINEPREFIX="$root"/wine
+export WINEDLLOVERRIDES="mscoree,mshtml="
 program_dir="$WINEPREFIX/drive_c/Program"
 python_dir="$WINEPREFIX/drive_c/Python27"
 python_site="$python_dir/Lib/site-packages"
 toolsdir="$root/tools"
+program_files_7zip="$WINEPREFIX/drive_c/Program Files/7-Zip"
+program_files_x86_7zip="$WINEPREFIX/drive_c/Program Files (x86)/7-Zip"
 apt_updated=
 
 apt_install(){
@@ -43,43 +57,95 @@ apt_install(){
 	sudo apt-get install -y "$@"
 }
 
+apt_add_architecture(){
+	if ! dpkg --print-foreign-architectures | grep -qx "$1"; then
+		sudo dpkg --add-architecture "$1"
+		apt_updated=
+	fi
+}
+
+display_run(){
+	if [ -n "$DISPLAY" ] || ! command -v xvfb-run >/dev/null 2>&1; then
+		"$@"
+	else
+		xvfb-run -a "$@"
+	fi
+}
+
+wine_run(){
+	display_run wine "$@"
+}
+
+ensure_wineprefix(){
+	if [ ! -e "$WINEPREFIX/system.reg" ]; then
+		echo "Initializing wine prefix..."
+		WINEARCH=win32 display_run wineboot -u
+		wineserver -w || true
+	fi
+}
+
 download(){
-	wget  -P /tmp -O "$2" "$1"
+	wget  -P /tmp -O "$2" "$1" || return 1
 	md5=$(md5sum $2)
 	md5=${md5%% *}
 	if [ ! "$md5" = "$3" ]; then
 		echo "Invalid download for $1, md5 does not match"
+		return 1
+	fi
+}
+
+download_or_fail(){
+	download "$@" || exit 1
+}
+
+download_sha256_or_fail(){
+	wget -P /tmp -O "$2" "$1" || exit 1
+	sha256=$(sha256sum "$2")
+	sha256=${sha256%% *}
+	if [ ! "$sha256" = "$3" ]; then
+		echo "Invalid download for $1, sha256 does not match"
 		exit 1
 	fi
 }
 
 install_7z(){
 	echo "Installing 7z..."
-	download "$p7zip_url" "/tmp/p7zip.exe" "$p7zip_md5"
-	wine "/tmp/p7zip.exe" /S
+	if download "$p7zip_url" "/tmp/p7zip.exe" "$p7zip_md5"; then
+		wine_run "/tmp/p7zip.exe" /S
+	else
+		echo "Falling back to portable 7za..."
+		mkdir -p "$program_files_7zip"
+		download_sha256_or_fail "$portable_7za_url" "/tmp/7za.exe" "$portable_7za_sha256"
+		cp "/tmp/7za.exe" "$program_files_7zip/7za.exe"
+	fi
 }
 
 install_wine(){
+	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ] || \
+	   ! dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -q "install ok installed"; then
+		apt_add_architecture i386
+	fi
 	if [ ! -x /usr/bin/wine -a ! -x /usr/local/bin/wine ]; then
 		echo "Installing wine..."
-		apt_install wine #TBD do not assume apt
+		apt_install wine wine32:i386 #TBD do not assume apt
 	fi
-	#echo "Creating wine folder..."
-	#wineprefixcreate --prefix "$WINEPREFIX"
+	if ! dpkg-query -W -f='${Status}' wine32:i386 2>/dev/null | grep -q "install ok installed"; then
+		echo "Installing wine32..."
+		apt_add_architecture i386
+		apt_install wine32:i386 #TBD do not assume apt
+	fi
+	if [ -z "$DISPLAY" ] && ! command -v xvfb-run >/dev/null 2>&1; then
+		echo "Installing xvfb..."
+		apt_install xvfb #TBD do not assume apt
+	fi
+	ensure_wineprefix
 }
 
 install_mingw32(){
-	if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
+	if [ ! -x /usr/bin/i686-w64-mingw32-gcc -a ! -x /usr/local/bin/i686-w64-mingw32-gcc ] && \
+	   [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
 		echo "Installing mingw32..."
-		apt_install mingw32 #TBD do not assume apt
-	fi
-	if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
-		echo "Installing mingw32 via dpkg..."
-		arch=$(dpkg --print-architecture)
-		wget "$mingw32_url$arch.deb" -P /tmp -O "/tmp/mingw32.deb"
-		wget "$mingw32_binutils_url$arch.deb" -P /tmp -O "/tmp/mingw32-binutils.deb"
-		wget "$mingw32_runtime_url" -P /tmp -O "/tmp/mingw32-runtime.deb"
-		sudo dpkg -i /tmp/mingw32*.deb
+		apt_install gcc-mingw-w64-i686 binutils-mingw-w64-i686 #TBD do not assume apt
 	fi
 }
 
@@ -90,47 +156,99 @@ install_unzip(){
 	fi
 }
 
+install_zip(){
+	if [ ! -x /usr/bin/zip -a ! -x /usr/local/bin/zip ]; then
+		echo "Installing zip..."
+		apt_install zip #TBD do not assume apt
+	fi
+}
+
+install_gettext(){
+	if [ ! -x /usr/bin/msgfmt -a ! -x /usr/local/bin/msgfmt ]; then
+		echo "Installing gettext..."
+		apt_install gettext #TBD do not assume apt
+	fi
+}
+
 install_python(){
 	echo "Installing python..."
-	download "$python_url" "/tmp/python.msi" "$python_md5"
-	wine msiexec /i /tmp/python.msi /qn /ADDLOCAL=DefaultFeature /ALLUSERS=1
+	if download "$python_url" "/tmp/python.msi" "$python_md5"; then
+		wine_run msiexec /i /tmp/python.msi /qn /ADDLOCAL=DefaultFeature /ALLUSERS=1
+	else
+		echo "Falling back to portable Python bootstrap..."
+		mkdir -p "$python_dir" "$python_dir/Lib" "$python_site"
+		download_sha256_or_fail "$portable_python_exe_url" "/tmp/python.exe" "$portable_python_exe_sha256"
+		download_sha256_or_fail "$portable_python_dll_url" "/tmp/python27.dll" "$portable_python_dll_sha256"
+		download_sha256_or_fail "$portable_python_zip_url" "/tmp/python27.zip" "$portable_python_zip_sha256"
+		download_sha256_or_fail "$portable_python_w9xpopen_url" "/tmp/w9xpopen.exe" "$portable_python_w9xpopen_sha256"
+		cp "/tmp/python.exe" "$python_dir/python.exe"
+		cp "/tmp/python27.dll" "$python_dir/python27.dll"
+		cp "/tmp/w9xpopen.exe" "$python_dir/w9xpopen.exe"
+		python3 - "$python_dir/Lib" "/tmp/python27.zip" <<'EOF'
+import sys
+import zipfile
+
+target_dir, archive = sys.argv[1:3]
+zf = zipfile.ZipFile(archive)
+zf.extractall(target_dir)
+EOF
+		rm -f "$python_dir/python27.zip"
+		while IFS='|' read -r name url sha; do
+			download_sha256_or_fail "$url" "/tmp/$name" "$sha"
+			cp "/tmp/$name" "$python_dir/$name"
+		done <<EOF
+_socket.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_socket.pyd|235cc97584c3d31e5f3146121f64699d30cf372a86868ea755a9a0afa6c56144
+select.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/select.pyd|edccb048476f4b029eb3e675b16e0cfbe0bbc4d795977e4c7fcf6ae520d453f1
+bz2.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/bz2.pyd|2e54bdd269ceaba1368298407245787de76f25210fed08e3338de9f8a579dcf7
+pyexpat.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/pyexpat.pyd|103f4329d53cf937c7023e8f2c21d008b9b7abe88d78bc3b05bf048c63735d88
+unicodedata.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/unicodedata.pyd|babac4908787ca7b033e8fa1612e04dea5456bcc97714e732138ddeb3888cd1b
+_hashlib.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_hashlib.pyd|6f8a2f7fe1a702521706fcbe82592ac24e8c897f5bf47f798122dbd0b109c2a6
+_ssl.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_ssl.pyd|360b506df81ffc0b49ac15924314fa549084227b998b202572eed90b695dfd3a
+_sqlite3.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_sqlite3.pyd|866bcb56030eae4bf792bab5dcc1ccea50853a6dbc62955d98a92ce4010ed631
+_elementtree.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_elementtree.pyd|de5d0de81d6df01cb6c9e2d86045cc435ae897d2f16599aa59ebe2bb9bd81ac8
+_ctypes.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_ctypes.pyd|d14315cf03aa7d96b714bfc13f7990ec245d205e4a5f9f002d2805e369199239
+_multiprocessing.pyd|https://raw.githubusercontent.com/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/_multiprocessing.pyd|6c8095dd83694fbe58e9cfd9548d5559c5853b690e8f3761b3194edc374701d9
+sqlite3.dll|https://media.githubusercontent.com/media/slapyst82-boop/gugustus-v2.8/1740432b76c09f6032e10e8c91aa022cc74259f3/runtime/bin/python/sqlite3.dll|c59f96044488efd96d51c4ddbddf8b0fe4bba79797b02263357bf0c20bf12f83
+EOF
+	fi
 	# wine "/tmp/python.exe"
 }
 
 install_pywin(){
 	echo "Installing pywin..."
-	download "$pywin_url" "/tmp/pywin.exe" "$pywin_md5"
-	wine "/tmp/pywin.exe" /silent
+	download_or_fail "$pywin_url" "/tmp/pywin.exe" "$pywin_md5"
+	wine_run "/tmp/pywin.exe" /silent
 }
 
 install_ctypes(){
 	echo "Installing ctypes..."
-	download "$ctypes_url" "/tmp/ctypes.exe" "$ctypes_md5"
-	wine "/tmp/ctypes.exe" /silent
+	download_or_fail "$ctypes_url" "/tmp/ctypes.exe" "$ctypes_md5"
+	wine_run "/tmp/ctypes.exe" /silent
 }
 
 install_mock(){
-	download "$mock_url" "/tmp/mock.zip" "$mock_md5"
+	download_or_fail "$mock_url" "/tmp/mock.zip" "$mock_md5"
 	unzip "/tmp/mock.zip" -d "/tmp"
 	cp "/tmp/mock-0.3.1/mock.py" "$python_site"
 }
 
 install_subprocess(){
 	echo "Installing subprocess..."
-	download "$subprocess_url" "/tmp/subprocess.exe" "$subprocess_md5"
-	wine "/tmp/subprocess.exe" /silent
+	download_or_fail "$subprocess_url" "/tmp/subprocess.exe" "$subprocess_md5"
+	wine_run "/tmp/subprocess.exe" /silent
 }
 
 install_pycrypto(){
 	echo "Installing pycrypto..."
-	download "$pycrypto_url" "/tmp/pycrypto.exe" "$pycrypto_md5"
-	wine "/tmp/pycrypto.exe" /silent
+	download_or_fail "$pycrypto_url" "/tmp/pycrypto.exe" "$pycrypto_md5"
+	wine_run "/tmp/pycrypto.exe" /silent
 }
 
-if [ ! -e "$root/wine" ]; then
+if [ ! -e "$WINEPREFIX/system.reg" ]; then
 	install_wine
 fi
-if [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
+if [ ! -x /usr/bin/i686-w64-mingw32-gcc -a ! -x /usr/local/bin/i686-w64-mingw32-gcc ] && \
+   [ ! -x /usr/bin/i586-mingw32msvc-gcc -a ! -x /usr/local/bin/i586-mingw32msvc-gcc ]; then
 	install_mingw32
 fi
 if [ ! -e "$python_dir/python.exe" ]; then
@@ -139,12 +257,9 @@ if [ ! -e "$python_dir/python.exe" ]; then
 	#~ install_subprocess
 	#~ install_ctypes
 fi
-if [ ! -e "$python_site/Crypto" ]; then
-	install_pycrypto
-fi
-if [ ! -e "$python_site/mock.py" ]; then
-	install_mock
-fi
-if [ ! -e "$program_dir"*"/7-Zip/7z.exe" ]; then
+install_gettext
+install_zip
+if [ ! -e "$program_files_7zip/7z.exe" ] && [ ! -e "$program_files_7zip/7za.exe" ] && \
+   [ ! -e "$program_files_x86_7zip/7z.exe" ] && [ ! -e "$program_files_x86_7zip/7za.exe" ]; then
 	install_7z
 fi
