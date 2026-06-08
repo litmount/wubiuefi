@@ -154,6 +154,20 @@ install_unzip(){
 	fi
 }
 
+install_zip(){
+	if [ ! -x /usr/bin/zip -a ! -x /usr/local/bin/zip ]; then
+		echo "Installing zip..."
+		apt_install zip #TBD do not assume apt
+	fi
+}
+
+install_gettext(){
+	if [ ! -x /usr/bin/msgfmt -a ! -x /usr/local/bin/msgfmt ]; then
+		echo "Installing gettext..."
+		apt_install gettext #TBD do not assume apt
+	fi
+}
+
 install_python(){
 	echo "Installing python..."
 	if download "$python_url" "/tmp/python.msi" "$python_md5"; then
@@ -231,6 +245,8 @@ if [ ! -e "$python_dir/python.exe" ]; then
 	#~ install_subprocess
 	#~ install_ctypes
 fi
+install_gettext
+install_zip
 if [ ! -e "$program_files_7zip/7z.exe" ] && [ ! -e "$program_files_7zip/7za.exe" ] && \
    [ ! -e "$program_files_x86_7zip/7z.exe" ] && [ ! -e "$program_files_x86_7zip/7za.exe" ]; then
 	install_7z
